@@ -7,6 +7,8 @@ import ar.edu.utn.sanfrancisco.atenea.application.spot.command.UpdateSpotStatusU
 import ar.edu.utn.sanfrancisco.atenea.application.spot.query.GetAllParkingSpotsUseCase;
 import ar.edu.utn.sanfrancisco.atenea.domain.spot.ParkingSpotRepository;
 import org.springframework.amqp.core.*;
+import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -48,6 +50,11 @@ public class ParkingSpotConfiguration {
             @Value("${atenea.rabbitmq.spot-status.routing-key}") final String routingKey
     ) {
         return BindingBuilder.bind(spotStatusQueue).to(spotStatusExchange).with(routingKey);
+    }
+
+    @Bean
+    public MessageConverter rabbitMessageConverter() {
+        return new JacksonJsonMessageConverter();
     }
 
 }
