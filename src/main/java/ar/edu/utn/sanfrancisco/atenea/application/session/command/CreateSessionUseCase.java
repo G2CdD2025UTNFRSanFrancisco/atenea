@@ -88,7 +88,7 @@ public class CreateSessionUseCase {
                             command.deviceId()
                     );
 
-                    if (optional.isEmpty()) {
+                    if (optional.isEmpty() || !optional.get().isActive(clock)) {
                         final Session session = Session.create(
                                 account,
                                 command.deviceId(),
