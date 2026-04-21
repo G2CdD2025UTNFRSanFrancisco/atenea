@@ -1,0 +1,6 @@
+name: Develop
+variables:
+  - name: BASE_URL
+    value: http://localhost:8080/api/v1
+  - name: DEVICE_ID
+    value: 1d829c4f-e6f1-4cc5-b36f-dc25caa73cd2

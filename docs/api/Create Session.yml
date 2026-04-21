@@ -1,0 +1,32 @@
+info:
+  name: Create Session
+  type: http
+  seq: 1
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/sessions"
+  headers:
+    - name: X-Device-Id
+      value: "{{DEVICE_ID}}"
+  body:
+    type: json
+    data: |-
+      {
+        "username": "{{process.env.USERNAME}}",
+        "password": "{{process.env.PASSWORD}}"
+      }
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (!(res.body["status"] === "SUCCESS")) return;
+        bru.setVar("AccessToken", res.body["access_token"]);
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
