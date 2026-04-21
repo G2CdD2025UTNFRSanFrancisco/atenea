@@ -13,6 +13,17 @@ public interface SpringDataSessionRepository extends JpaRepository<SessionEntity
     Optional<SessionEntity> findByRefreshTokenAndDeviceIdAndRevokedAtIsNull(String refreshToken, String deviceId);
     Optional<SessionEntity> findByIdAndRevokedAtIsNull(Long id);
 
+    Optional<SessionEntity> findFirstByAccountIdAndDeviceIdAndRevokedAtIsNullAndExpiresAtAfter(
+            Long accountId,
+            String deviceId,
+            Instant now
+    );
+
+    Optional<SessionEntity> findFirstByRefreshTokenAndRevokedAtIsNullAndExpiresAtAfter(
+            String refreshToken,
+            Instant now
+    );
+
     @Modifying
     @Query("""
             update SessionEntity s

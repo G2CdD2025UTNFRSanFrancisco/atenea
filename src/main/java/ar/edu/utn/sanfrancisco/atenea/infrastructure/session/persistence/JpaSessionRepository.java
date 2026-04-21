@@ -22,19 +22,19 @@ public class JpaSessionRepository implements SessionRepository {
 
     @Override
     public Optional<Session> findByAccountIdAndDeviceId(AccountId accountId, DeviceId deviceId) {
-        return repository.findByAccountIdAndDeviceIdAndRevokedAtIsNull(
+        return repository.findFirstByAccountIdAndDeviceIdAndRevokedAtIsNullAndExpiresAtAfter(
                 accountId.value(),
-                deviceId.value()
+                deviceId.value(),
+                Instant.now(this.clock)
         ).map(SessionMapper::toDomain);
     }
 
     @Override
     public Optional<Session> findByRefreshTokenAndDeviceId(HashedRefreshToken refreshToken, DeviceId deviceId) {
-        return repository
-                .findByRefreshTokenAndDeviceIdAndRevokedAtIsNull(
-                        refreshToken.value(),
-                        deviceId.value()
-                ).map(SessionMapper::toDomain);
+        return repository.findFirstByRefreshTokenAndRevokedAtIsNullAndExpiresAtAfter(
+                refreshToken.value(),
+                Instant.now(this.clock)
+        ).map(SessionMapper::toDomain);
     }
 
     @Override
