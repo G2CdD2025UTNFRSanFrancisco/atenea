@@ -4,6 +4,7 @@ import ar.edu.utn.sanfrancisco.atenea.domain.shared.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ProblemDetail;
+import org.springframework.security.authorization.AuthorizationDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
@@ -39,6 +40,14 @@ public class GlobalExceptionHandler {
         final ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.BAD_REQUEST);
         problem.setDetail("Invalid request format.");
         problem.setProperty("error_code", "INVALID_REQUEST");
+        return problem;
+    }
+
+    @ExceptionHandler(AuthorizationDeniedException.class)
+    public ProblemDetail handleUnauthorized(final AuthorizationDeniedException ex) {
+        final ProblemDetail problem = ProblemDetail.forStatus(HttpStatus.FORBIDDEN);
+        problem.setDetail("You do not have permission to perform this action.");
+        problem.setProperty("error_code", "ACCESS_DENIED");
         return problem;
     }
 
