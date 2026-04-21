@@ -47,6 +47,7 @@ public class Account {
             final Long persistenceVersion,
             final Password password,
             final boolean mfaRequired,
+            final HierarchyLevel hierarchy,
             final Scopes scopes,
             final int failedLoginAttempts,
             final Instant createdAt,
@@ -60,6 +61,7 @@ public class Account {
         this.persistenceVersion = persistenceVersion;
         this.password = password;
         this.mfaRequired = mfaRequired;
+        this.hierarchy = hierarchy;
         this.scopes = scopes;
         this.failedLoginAttempts = failedLoginAttempts;
         this.createdAt = createdAt;
@@ -73,6 +75,7 @@ public class Account {
     public static Account create(
             final Username username,
             final PlainPassword plain,
+            final HierarchyLevel hierarchy,
             final IdentityGenerator idGen,
             final PasswordHashService hasher,
             final Clock clock
@@ -92,6 +95,7 @@ public class Account {
                 null,
                 password,
                 false,
+                hierarchy,
                 Scopes.empty(),
                 0,
                 now,
@@ -108,6 +112,7 @@ public class Account {
             final Long persistenceVersion,
             final Password password,
             final boolean mfaRequired,
+            final HierarchyLevel hierarchy,
             final Scopes scopes,
             final int failedLoginAttempts,
             final Instant createdAt,
@@ -122,6 +127,7 @@ public class Account {
                 persistenceVersion,
                 password,
                 mfaRequired,
+                hierarchy,
                 scopes,
                 failedLoginAttempts,
                 createdAt,

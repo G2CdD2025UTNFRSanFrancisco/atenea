@@ -78,8 +78,16 @@ public class AccountController {
         return AccountDetailsResponse.fromSnapshot(this.getAccountDetailsUseCase.execute(actorIdFrom(token)));
     }
 
+    @GetMapping("/{targetAccountId}")
+    @PreAuthorize("hasAuthority('SCOPE_READ_ACCOUNTS') or hasAuthority('SCOPE_ADMIN')")
+    public AccountDetailsResponse getAccountById(
+            @PathVariable final Long targetAccountId
+    ) {
+        return AccountDetailsResponse.fromSnapshot(this.getAccountDetailsUseCase.execute(new AccountId(targetAccountId)));
+    }
+
     @GetMapping("")
-    @PreAuthorize("hasAuthority('SCOPE_READ_ACCOUNTS')")
+    @PreAuthorize("hasAuthority('SCOPE_READ_ACCOUNTS') or hasAuthority('SCOPE_ADMIN')")
     public PagedResult<AccountDetailsResponse> getAllAccounts(
             @RequestParam(defaultValue = "0") final int page,
             @RequestParam(defaultValue = "10") final int size
@@ -97,7 +105,7 @@ public class AccountController {
 
     @PostMapping("")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAuthority('SCOPE_MANAGE_ACCOUNTS')")
+    @PreAuthorize("hasAuthority('SCOPE_MANAGE_ACCOUNTS') or hasAuthority('SCOPE_ADMIN')")
     public CreatedAccountResponse create(
             @Valid @RequestBody final CreateAccountRequest request
     ) {
@@ -125,6 +133,7 @@ public class AccountController {
 
     @DeleteMapping("/{targetAccountId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasAuthority('SCOPE_MANAGE_ACCOUNTS') or hasAuthority('SCOPE_ADMIN')")
     public void delete(
             @PathVariable final Long targetAccountId,
             final JwtAuthenticationToken principal
@@ -136,7 +145,7 @@ public class AccountController {
 
     @PutMapping("/{targetAccountId}/scopes")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority('SCOPE_MANAGE_ACCOUNTS')")
+    @PreAuthorize("hasAuthority('SCOPE_MANAGE_ACCOUNTS') or hasAuthority('SCOPE_ADMIN')")
     public void setScopes(
             @PathVariable final Long targetAccountId,
             @Valid @RequestBody final SetScopesRequest request,
@@ -149,7 +158,7 @@ public class AccountController {
 
     @PostMapping("/{targetAccountId}/scopes/{scope}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority('SCOPE_MANAGE_ACCOUNTS')")
+    @PreAuthorize("hasAuthority('SCOPE_MANAGE_ACCOUNTS') or hasAuthority('SCOPE_ADMIN')")
     public void grantScope(
             @PathVariable final Long targetAccountId,
             @PathVariable final Scope scope,
@@ -162,7 +171,7 @@ public class AccountController {
 
     @DeleteMapping("/{targetAccountId}/scopes/{scope}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority('SCOPE_MANAGE_ACCOUNTS')")
+    @PreAuthorize("hasAuthority('SCOPE_MANAGE_ACCOUNTS') or hasAuthority('SCOPE_ADMIN')")
     public void revokeScope(
             @PathVariable final Long targetAccountId,
             @PathVariable final Scope scope,

@@ -24,6 +24,7 @@ public class AccountEntity {
     @Embedded
     private PasswordEmbeddable password;
     private boolean mfaRequired;
+    private int hierarchyLevel;
 
     @Column(nullable = false)
     private long scopes;
@@ -44,6 +45,7 @@ public class AccountEntity {
             Long persistenceVersion,
             PasswordEmbeddable password,
             boolean mfaRequired,
+            int hierarchyLevel,
             long scopes,
             int failedLoginAttempts,
             Instant createdAt,
@@ -57,6 +59,7 @@ public class AccountEntity {
         this.persistenceVersion = persistenceVersion;
         this.password = password;
         this.mfaRequired = mfaRequired;
+        this.hierarchyLevel = hierarchyLevel;
         this.scopes = scopes;
         this.failedLoginAttempts = failedLoginAttempts;
         this.createdAt = createdAt;
