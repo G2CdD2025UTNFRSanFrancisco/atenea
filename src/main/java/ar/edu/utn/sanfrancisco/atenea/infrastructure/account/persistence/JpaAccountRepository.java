@@ -3,6 +3,7 @@ package ar.edu.utn.sanfrancisco.atenea.infrastructure.account.persistence;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.*;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountDetailsSnapshot;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountSessionSnapshot;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountSummarySnapshot;
 import ar.edu.utn.sanfrancisco.atenea.domain.shared.PagedResult;
 import ar.edu.utn.sanfrancisco.atenea.domain.shared.PaginationQuery;
 import jakarta.persistence.EntityManager;
@@ -77,20 +78,16 @@ public class JpaAccountRepository implements AccountRepository {
     }
 
     @Override
-    public PagedResult<AccountDetailsSnapshot> findAllAccountDetailsSnapshot(PaginationQuery query) {
-        List<AccountDetailsSnapshot> results = em.createQuery("""
-                select new ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountDetailsSnapshot(
+    public PagedResult<AccountSummarySnapshot> findAllAccountSummarySnapshot(PaginationQuery query) {
+        List<AccountSummarySnapshot> results = em.createQuery("""
+                select new ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountSummarySnapshot(
                     a.id,
                     a.username,
-                    a.scopes,
-                    a.mfaRequired,
-                    a.createdAt,
-                    a.updatedAt,
-                    a.deletedAt
+                    a.mfaRequired
                 )
                 from AccountEntity a
                 order by a.id
-                """, AccountDetailsSnapshot.class)
+                """, AccountSummarySnapshot.class)
                 .setFirstResult(query.offset())
                 .setMaxResults(query.limit())
                 .getResultList();

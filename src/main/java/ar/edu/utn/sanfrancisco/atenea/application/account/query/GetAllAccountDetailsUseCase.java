@@ -2,6 +2,7 @@ package ar.edu.utn.sanfrancisco.atenea.application.account.query;
 
 import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountRepository;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountDetailsSnapshot;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountSummarySnapshot;
 import ar.edu.utn.sanfrancisco.atenea.domain.shared.PagedResult;
 import ar.edu.utn.sanfrancisco.atenea.domain.shared.PaginationQuery;
 
@@ -13,8 +14,8 @@ public class GetAllAccountDetailsUseCase {
         this.accountRepository = accountRepository;
     }
 
-    public PagedResult<AccountDetailsSnapshot> execute(final PaginationQuery query) {
-        return accountRepository.findAllAccountDetailsSnapshot(query);
+    public PagedResult<AccountSummarySnapshot> execute(final PaginationQuery query) {
+        return accountRepository.findAllAccountSummarySnapshot(query);
     }
 
 }

@@ -88,7 +88,7 @@ public class AccountController {
 
     @GetMapping("")
     @PreAuthorize("hasAuthority('SCOPE_READ_ACCOUNTS') or hasAuthority('SCOPE_ADMIN')")
-    public PagedResult<AccountDetailsResponse> getAllAccounts(
+    public PagedResult<AccountSummaryResponse> getAllAccounts(
             @RequestParam(defaultValue = "0") final int page,
             @RequestParam(defaultValue = "10") final int size
     ) {
@@ -96,7 +96,7 @@ public class AccountController {
         final var result = this.getAllAccountDetailsUseCase.execute(query);
         return PagedResult.of(
                 result.items().stream()
-                        .map(AccountDetailsResponse::fromSnapshot)
+                        .map(AccountSummaryResponse::fromSnapshot)
                         .collect(Collectors.toList()),
                 result.totalItems(),
                 query

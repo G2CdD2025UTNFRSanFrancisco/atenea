@@ -2,6 +2,7 @@ package ar.edu.utn.sanfrancisco.atenea.domain.account;
 
 import ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountDetailsSnapshot;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountSessionSnapshot;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountSummarySnapshot;
 import ar.edu.utn.sanfrancisco.atenea.domain.shared.PagedResult;
 import ar.edu.utn.sanfrancisco.atenea.domain.shared.PaginationQuery;
 
@@ -15,7 +16,7 @@ public interface AccountRepository {
     Optional<AccountSessionSnapshot> findAccountSessionSnapshotByIdAndVersion(final AccountId id, final SessionVersion version);
     Optional<AccountDetailsSnapshot> findAccountDetailsSnapshotById(final AccountId id);
 
-    PagedResult<AccountDetailsSnapshot> findAllAccountDetailsSnapshot(final PaginationQuery query);
+    PagedResult<AccountSummarySnapshot> findAllAccountSummarySnapshot(final PaginationQuery query);
 
     boolean existsByUsername(final Username username);
 
