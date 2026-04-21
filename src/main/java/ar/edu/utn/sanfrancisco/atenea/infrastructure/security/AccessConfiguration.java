@@ -39,7 +39,6 @@ public class AccessConfiguration {
             BearerTokenResolver authenticationHeaderTokenResolver,
             CorsConfigurationSource corsConfigurationSource
     ) {
-
         http.csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .formLogin(AbstractHttpConfigurer::disable)
@@ -55,14 +54,7 @@ public class AccessConfiguration {
                         .requestMatchers("/api/v1/spots/**").permitAll()
                         .requestMatchers("/ws/**").permitAll()
                         .requestMatchers("/error").permitAll()
-                        .anyRequest().access((authentication, context) -> {
-                            var authorities = Objects.requireNonNull(authentication.get()).getAuthorities();
-
-                            boolean isAdmin = authorities.stream()
-                                    .anyMatch(a -> Objects.equals(a.getAuthority(), "SCOPE_ADMIN"));
-
-                            return new AuthorizationDecision(isAdmin || Objects.requireNonNull(authentication.get()).isAuthenticated());
-                        })
+                        .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2
                         .bearerTokenResolver(authenticationHeaderTokenResolver)

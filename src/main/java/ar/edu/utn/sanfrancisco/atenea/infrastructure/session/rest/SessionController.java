@@ -143,7 +143,7 @@ public class SessionController {
 
     @DeleteMapping("/{sessionId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority('SCOPE_MANAGE_SESSIONS')")
+    @PreAuthorize("hasAuthority('SCOPE_MANAGE_SESSIONS') or hasAuthority('SCOPE_ADMIN')")
     public void revokeSession(
             @PathVariable final Long sessionId,
             final JwtAuthenticationToken principal
@@ -155,7 +155,7 @@ public class SessionController {
 
     @DeleteMapping("/accounts/{targetAccountId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority('SCOPE_MANAGE_SESSIONS')")
+    @PreAuthorize("hasAuthority('SCOPE_MANAGE_SESSIONS') or hasAuthority('SCOPE_ADMIN')")
     public void revokeAllByAccount(
             @PathVariable final Long targetAccountId,
             final JwtAuthenticationToken principal

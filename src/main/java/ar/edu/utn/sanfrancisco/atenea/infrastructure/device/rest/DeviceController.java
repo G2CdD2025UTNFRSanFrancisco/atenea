@@ -42,13 +42,13 @@ public class DeviceController {
     }
 
     @GetMapping("/{id}")
-    @PreAuthorize("hasAuthority('SCOPE_READ_SENSORS')")
+    @PreAuthorize("hasAuthority('SCOPE_READ_SENSORS') or hasAuthority('SCOPE_ADMIN')")
     public DeviceDetailsResponse getDevice(@PathVariable String id) {
         return DeviceDetailsResponse.fromSnapshot(this.getDeviceDetailsUseCase.execute(new DeviceId(id)));
     }
 
     @GetMapping("")
-    @PreAuthorize("hasAuthority('SCOPE_READ_SENSORS')")
+    @PreAuthorize("hasAuthority('SCOPE_READ_SENSORS') or hasAuthority('SCOPE_ADMIN')")
     public PagedResult<DeviceDetailsResponse> getAllDevices(
             @RequestParam(defaultValue = "0") final int page,
             @RequestParam(defaultValue = "10") final int size
@@ -65,7 +65,7 @@ public class DeviceController {
     }
 
     @PostMapping
-    @PreAuthorize("hasAuthority('SCOPE_MANAGE_SENSORS')")
+    @PreAuthorize("hasAuthority('SCOPE_MANAGE_SENSORS') or hasAuthority('SCOPE_ADMIN')")
     public CreateDeviceResponse createDevice(@RequestBody final CreateDeviceRequest request) {
         return CreateDeviceResponse.fromResult(this.createDeviceUseCase.execute(new CreateDeviceCommand(
                 new ParkingSpotId(request.spot())
@@ -73,7 +73,7 @@ public class DeviceController {
     }
 
     @DeleteMapping
-    @PreAuthorize("hasAuthority('SCOPE_MANAGE_SENSORS')")
+    @PreAuthorize("hasAuthority('SCOPE_MANAGE_SENSORS') or hasAuthority('SCOPE_ADMIN')")
     public void deleteDevice(@RequestBody final DeleteDeviceRequest request) {
         this.deleteDeviceUseCase.execute(new DeleteDeviceCommand(
                 new DeviceId(request.id())
