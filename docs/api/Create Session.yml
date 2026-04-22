@@ -22,8 +22,13 @@ runtime:
   scripts:
     - type: after-response
       code: |-
-        if (!(res.body["status"] === "SUCCESS")) return;
-        bru.setVar("AccessToken", res.body["access_token"]);
+        if (res.body["status"] === "SUCCESS") {
+          bru.setVar("AccessToken", res.body["access_token"]);
+        }
+
+        if (res.body["status"] === "PASSWORD_CHANGE_REQUIRED") {
+          bru.setVar("PasswordChangeToken", res.body["access_token"])
+        }
 
 settings:
   encodeUrl: true

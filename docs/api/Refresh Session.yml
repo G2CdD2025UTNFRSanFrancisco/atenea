@@ -1,0 +1,26 @@
+info:
+  name: Refresh Session
+  type: http
+  seq: 6
+
+http:
+  method: POST
+  url: "{{BASE_URL}}/sessions/refresh"
+  headers:
+    - name: X-Device-ID
+      value: "{{DEVICE_ID}}"
+  auth: inherit
+
+runtime:
+  scripts:
+    - type: after-response
+      code: |-
+        if (res.body["access_token"]) {
+            bru.setVar("AccessToken", res.body["access_token"]);
+        }
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
