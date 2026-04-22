@@ -11,6 +11,7 @@ import ar.edu.utn.sanfrancisco.atenea.domain.account.scope.Scope;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.scope.Scopes;
 import ar.edu.utn.sanfrancisco.atenea.domain.identity.IdentityGenerator;
 import lombok.Getter;
+import lombok.Setter;
 
 import java.time.Clock;
 import java.time.Duration;
@@ -28,6 +29,7 @@ public class Account {
     private SessionVersion version;
 
     private Password password;
+    @Setter
     private boolean mfaRequired;
     private HierarchyLevel hierarchy;
     private Scopes scopes;
@@ -146,7 +148,6 @@ public class Account {
     public boolean requiresMfa() {
         return this.mfaRequired;
     }
-
 
     public AuthenticationResult authenticatePassword(
             final PlainPassword plain,

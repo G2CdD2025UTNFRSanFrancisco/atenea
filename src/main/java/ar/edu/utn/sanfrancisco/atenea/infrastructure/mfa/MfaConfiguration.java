@@ -5,6 +5,7 @@ import ar.edu.utn.sanfrancisco.atenea.application.mfa.command.DisableMfaUseCase;
 import ar.edu.utn.sanfrancisco.atenea.application.mfa.command.RegenerateRecoveryCodesUseCase;
 import ar.edu.utn.sanfrancisco.atenea.application.mfa.command.StartTotpEnrollmentUseCase;
 import ar.edu.utn.sanfrancisco.atenea.application.mfa.command.VerifyTotpUseCase;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.Account;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountRepository;
 import ar.edu.utn.sanfrancisco.atenea.domain.mfa.MfaEnrollmentRepository;
 import ar.edu.utn.sanfrancisco.atenea.domain.mfa.factor.totp.TotpService;
@@ -39,6 +40,7 @@ public class MfaConfiguration {
     @Bean
     public ActivateTotpUseCase provideActivateTotpUseCase(
             final MfaEnrollmentRepository mfaEnrollmentRepository,
+            final AccountRepository accountRepository,
             final TotpService totpService,
             final RecoveryCodeGenerator recoveryCodeGenerator,
             final RecoveryCodeHashService recoveryCodeHashService,
@@ -47,6 +49,7 @@ public class MfaConfiguration {
     ) {
         return new ActivateTotpUseCase(
                 mfaEnrollmentRepository,
+                accountRepository,
                 totpService,
                 recoveryCodeGenerator,
                 recoveryCodeHashService,
