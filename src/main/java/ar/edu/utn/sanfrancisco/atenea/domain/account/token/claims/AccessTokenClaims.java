@@ -1,7 +1,7 @@
 package ar.edu.utn.sanfrancisco.atenea.domain.account.token.claims;
 
 import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountId;
-import ar.edu.utn.sanfrancisco.atenea.domain.account.scope.Scopes;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.role.Role;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.token.TokenPurpose;
 
 import java.time.Instant;
@@ -11,11 +11,11 @@ public record AccessTokenClaims(
         AccountId subject,
         Instant issuedAt,
         Instant expiresAt,
-        Scopes scopes,
+        Role role,
         String acr
 ) implements TokenClaims {
 
-    public static final String SCOPES_FIELD = "scp";
+    public static final String ROLE_FIELD = "role";
     public static final String ACR_FIELD = "acr";
     public static final String ACR_MFA = "mfa";
     public static final String ACR_PASSWORD = "pwd";
@@ -32,7 +32,7 @@ public record AccessTokenClaims(
                 ISSUED_AT_FILED, issuedAt.getEpochSecond(),
                 EXPIRES_AT_FIELD, expiresAt.getEpochSecond(),
                 PURPOSE_FIELD, purpose().toString(),
-                SCOPES_FIELD, scopes.value(),
+                ROLE_FIELD, role.name(),
                 ACR_FIELD, acr
         );
     }

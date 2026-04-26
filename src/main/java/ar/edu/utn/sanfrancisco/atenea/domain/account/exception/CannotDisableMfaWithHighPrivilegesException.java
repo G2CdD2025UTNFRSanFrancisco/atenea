@@ -1,22 +1,20 @@
 package ar.edu.utn.sanfrancisco.atenea.domain.account.exception;
 
-import ar.edu.utn.sanfrancisco.atenea.domain.account.scope.Scope;
 import ar.edu.utn.sanfrancisco.atenea.domain.shared.BusinessException;
 
 import java.util.Map;
-import java.util.Set;
 
 public class CannotDisableMfaWithHighPrivilegesException extends BusinessException {
 
-    private final Set<Scope> scopes;
+    private final String role;
 
-    public CannotDisableMfaWithHighPrivilegesException(final Set<Scope> scopes) {
-        super("You cannot disable mfa with high privileges.", "account.mfa.required", 403);
-        this.scopes = scopes;
+    public CannotDisableMfaWithHighPrivilegesException(final String role) {
+        super("You cannot disable mfa with high privilege roles.", "account.mfa.required", 403);
+        this.role = role;
     }
 
     @Override
     public Map<String, Object> getMetadata() {
-        return Map.of("scopes", this.scopes);
+        return Map.of("role", this.role);
     }
 }

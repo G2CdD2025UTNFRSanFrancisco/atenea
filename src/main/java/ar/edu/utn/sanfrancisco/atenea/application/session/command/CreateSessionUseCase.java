@@ -83,43 +83,43 @@ public class CreateSessionUseCase {
                 }
 
                 final PlainRefreshToken refreshToken = refreshTokenGenerator.generate();
-                    final Optional<Session> optional = this.sessionRepository.findByAccountIdAndDeviceId(
-                            account.getId(),
-                            command.deviceId()
+                final Optional<Session> optional = this.sessionRepository.findByAccountIdAndDeviceId(
+                        account.getId(),
+                        command.deviceId()
+                );
+
+                if (optional.isEmpty() || !optional.get().isActive(clock)) {
+                    final Session session = Session.create(
+                            account,
+                            command.deviceId(),
+                            refreshToken,
+                            this.identityGenerator,
+                            this.refreshTokenHashService,
+                            this.clock
                     );
-
-                    if (optional.isEmpty() || !optional.get().isActive(clock)) {
-                        final Session session = Session.create(
-                                account,
-                                command.deviceId(),
-                                refreshToken,
-                                this.identityGenerator,
-                                this.refreshTokenHashService,
-                                this.clock
-                        );
-                        this.sessionRepository.create(session);
-                    } else {
-                        final Session session = optional.get();
-                        session.rotateRefreshToken(
-                                refreshToken,
-                                this.refreshTokenHashService,
-                                this.clock
-                        );
-                        this.sessionRepository.update(session);
-                    }
-
-                    final String accessToken = AccessTokenBuilder
-                            .forAccess(account.getId())
-                            .scopes(account.getScopes())
-                            .mfaEnabled(account.requiresMfa())
-                            .sign(tokenSigner, clock);
-
-                    yield LoginResponse.success(
-                            accessToken,
-                            new String(refreshToken.value()),
-                            account.getId()
+                    this.sessionRepository.create(session);
+                } else {
+                    final Session session = optional.get();
+                    session.rotateRefreshToken(
+                            refreshToken,
+                            this.refreshTokenHashService,
+                            this.clock
                     );
+                    this.sessionRepository.update(session);
                 }
+
+                final String accessToken = AccessTokenBuilder
+                        .forAccess(account.getId())
+                        .role(account.getRole())
+                        .mfaEnabled(account.requiresMfa())
+                        .sign(tokenSigner, clock);
+
+                yield LoginResponse.success(
+                        accessToken,
+                        new String(refreshToken.value()),
+                        account.getId()
+                );
+            }
             case AuthenticationResult.PasswordChangeRequired p -> {
                 if (requiresMfa(account.getId(), Instant.now(this.clock))) {
                     final String token = AccessTokenBuilder

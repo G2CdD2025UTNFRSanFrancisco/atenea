@@ -3,19 +3,14 @@ package ar.edu.utn.sanfrancisco.atenea.infrastructure.account.rest;
 import ar.edu.utn.sanfrancisco.atenea.application.account.command.ChangePasswordUseCase;
 import ar.edu.utn.sanfrancisco.atenea.application.account.command.CreateAccountUseCase;
 import ar.edu.utn.sanfrancisco.atenea.application.account.command.DeleteAccountUseCase;
-import ar.edu.utn.sanfrancisco.atenea.application.account.command.GrantScopeUseCase;
-import ar.edu.utn.sanfrancisco.atenea.application.account.command.RevokeScopeUseCase;
-import ar.edu.utn.sanfrancisco.atenea.application.account.command.SetScopesUseCase;
+import ar.edu.utn.sanfrancisco.atenea.application.account.command.SetRoleUseCase;
 import ar.edu.utn.sanfrancisco.atenea.application.account.command.dto.ChangePasswordCommand;
 import ar.edu.utn.sanfrancisco.atenea.application.account.command.dto.CreateAccountCommand;
 import ar.edu.utn.sanfrancisco.atenea.application.account.command.dto.DeleteAccountCommand;
-import ar.edu.utn.sanfrancisco.atenea.application.account.command.dto.GrantScopeCommand;
-import ar.edu.utn.sanfrancisco.atenea.application.account.command.dto.RevokeScopeCommand;
-import ar.edu.utn.sanfrancisco.atenea.application.account.command.dto.SetScopesCommand;
+import ar.edu.utn.sanfrancisco.atenea.application.account.command.dto.SetRoleCommand;
 import ar.edu.utn.sanfrancisco.atenea.application.account.query.GetAccountDetailsUseCase;
 import ar.edu.utn.sanfrancisco.atenea.application.account.query.GetAllAccountDetailsUseCase;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountId;
-import ar.edu.utn.sanfrancisco.atenea.domain.account.scope.Scope;
 import ar.edu.utn.sanfrancisco.atenea.domain.session.exceptions.InvalidPasswordResetTokenException;
 import ar.edu.utn.sanfrancisco.atenea.domain.shared.PagedResult;
 import ar.edu.utn.sanfrancisco.atenea.domain.shared.PaginationQuery;
@@ -39,12 +34,9 @@ public class AccountController {
     private final GetAccountDetailsUseCase getAccountDetailsUseCase;
     private final GetAllAccountDetailsUseCase getAllAccountDetailsUseCase;
 
-
     private final CreateAccountUseCase createAccountUseCase;
     private final DeleteAccountUseCase deleteAccountUseCase;
-    private final SetScopesUseCase setScopesUseCase;
-    private final GrantScopeUseCase grantScopeUseCase;
-    private final RevokeScopeUseCase revokeScopeUseCase;
+    private final SetRoleUseCase setRoleUseCase;
     private final ChangePasswordUseCase changePasswordUseCase;
 
     private final PasswordResetTokenDecoder passwordResetTokenDecoder;
@@ -54,9 +46,7 @@ public class AccountController {
             final GetAllAccountDetailsUseCase getAllAccountDetailsUseCase,
             final CreateAccountUseCase createAccountUseCase,
             final DeleteAccountUseCase deleteAccountUseCase,
-            final SetScopesUseCase setScopesUseCase,
-            final GrantScopeUseCase grantScopeUseCase,
-            final RevokeScopeUseCase revokeScopeUseCase,
+            final SetRoleUseCase setRoleUseCase,
             final ChangePasswordUseCase changePasswordUseCase,
             final PasswordResetTokenDecoder passwordResetTokenDecoder
     ) {
@@ -64,9 +54,7 @@ public class AccountController {
         this.getAllAccountDetailsUseCase = getAllAccountDetailsUseCase;
         this.createAccountUseCase = createAccountUseCase;
         this.deleteAccountUseCase = deleteAccountUseCase;
-        this.setScopesUseCase = setScopesUseCase;
-        this.grantScopeUseCase = grantScopeUseCase;
-        this.revokeScopeUseCase = revokeScopeUseCase;
+        this.setRoleUseCase = setRoleUseCase;
         this.changePasswordUseCase = changePasswordUseCase;
         this.passwordResetTokenDecoder = passwordResetTokenDecoder;
     }
@@ -79,7 +67,7 @@ public class AccountController {
     }
 
     @GetMapping("/{targetAccountId}")
-    @PreAuthorize("hasAuthority('SCOPE_READ_ACCOUNTS') or hasAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_USER', 'ROLE_ADMIN', 'ROLE_OWNER')")
     public AccountDetailsResponse getAccountById(
             @PathVariable final Long targetAccountId
     ) {
@@ -87,7 +75,7 @@ public class AccountController {
     }
 
     @GetMapping("")
-    @PreAuthorize("hasAuthority('SCOPE_READ_ACCOUNTS') or hasAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_OWNER')")
     public PagedResult<AccountSummaryResponse> getAllAccounts(
             @RequestParam(defaultValue = "0") final int page,
             @RequestParam(defaultValue = "10") final int size
@@ -105,7 +93,7 @@ public class AccountController {
 
     @PostMapping("")
     @ResponseStatus(HttpStatus.CREATED)
-    @PreAuthorize("hasAuthority('SCOPE_MANAGE_ACCOUNTS') or hasAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_OWNER')")
     public CreatedAccountResponse create(
             @Valid @RequestBody final CreateAccountRequest request
     ) {
@@ -133,7 +121,7 @@ public class AccountController {
 
     @DeleteMapping("/{targetAccountId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority('SCOPE_MANAGE_ACCOUNTS') or hasAuthority('SCOPE_ADMIN')")
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_OWNER')")
     public void delete(
             @PathVariable final Long targetAccountId,
             final JwtAuthenticationToken principal
@@ -143,42 +131,16 @@ public class AccountController {
         );
     }
 
-    @PutMapping("/{targetAccountId}/scopes")
+    @PutMapping("/{targetAccountId}/role")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority('SCOPE_MANAGE_ACCOUNTS') or hasAuthority('SCOPE_ADMIN')")
-    public void setScopes(
+    @PreAuthorize("hasAnyAuthority('ROLE_ADMIN', 'ROLE_OWNER')")
+    public void setRole(
             @PathVariable final Long targetAccountId,
-            @Valid @RequestBody final SetScopesRequest request,
+            @Valid @RequestBody final SetRoleRequest request,
             final JwtAuthenticationToken principal
     ) {
-        setScopesUseCase.execute(
-                new SetScopesCommand(actorIdFrom(principal), new AccountId(targetAccountId), request.scopes())
-        );
-    }
-
-    @PostMapping("/{targetAccountId}/scopes/{scope}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority('SCOPE_MANAGE_ACCOUNTS') or hasAuthority('SCOPE_ADMIN')")
-    public void grantScope(
-            @PathVariable final Long targetAccountId,
-            @PathVariable final Scope scope,
-            final JwtAuthenticationToken principal
-    ) {
-        grantScopeUseCase.execute(
-                new GrantScopeCommand(actorIdFrom(principal), new AccountId(targetAccountId), scope)
-        );
-    }
-
-    @DeleteMapping("/{targetAccountId}/scopes/{scope}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    @PreAuthorize("hasAuthority('SCOPE_MANAGE_ACCOUNTS') or hasAuthority('SCOPE_ADMIN')")
-    public void revokeScope(
-            @PathVariable final Long targetAccountId,
-            @PathVariable final Scope scope,
-            final JwtAuthenticationToken principal
-    ) {
-        revokeScopeUseCase.execute(
-                new RevokeScopeCommand(actorIdFrom(principal), new AccountId(targetAccountId), scope)
+        setRoleUseCase.execute(
+                new SetRoleCommand(actorIdFrom(principal), new AccountId(targetAccountId), request.role())
         );
     }
 

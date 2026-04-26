@@ -102,7 +102,7 @@ public class CompleteTotpMfaUseCase {
             this.sessionRepository.update(session);
         }
         final String accessToken = AccessTokenBuilder.forAccess(account.getId())
-                .scopes(account.getScopes())
+                .role(account.getRole())
                 .mfaEnabled(account.requiresMfa())
                 .sign(tokenSigner, clock);
         accountRepository.update(account);

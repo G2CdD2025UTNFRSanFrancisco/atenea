@@ -19,6 +19,7 @@ public interface AccountRepository {
     PagedResult<AccountSummarySnapshot> findAllAccountSummarySnapshot(final PaginationQuery query);
 
     boolean existsByUsername(final Username username);
+    boolean existsActiveOwnerExcept(final AccountId accountId);
 
     void update(final Account account);
     void create(final Account account);

@@ -88,9 +88,10 @@ public class MfaConfiguration {
 
     @Bean
     public DisableMfaUseCase provideDisableMfaUseCase(
+            final AccountRepository accountRepository,
             final MfaEnrollmentRepository mfaEnrollmentRepository
     ) {
-        return new DisableMfaUseCase(mfaEnrollmentRepository);
+        return new DisableMfaUseCase(accountRepository, mfaEnrollmentRepository);
     }
 }
 

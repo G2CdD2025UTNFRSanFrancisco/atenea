@@ -1,7 +1,7 @@
 package ar.edu.utn.sanfrancisco.atenea.infrastructure.account.persistence;
 
 import ar.edu.utn.sanfrancisco.atenea.domain.account.*;
-import ar.edu.utn.sanfrancisco.atenea.domain.account.scope.Scopes;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.role.Role;
 import ar.edu.utn.sanfrancisco.atenea.infrastructure.account.persistence.credential.PasswordEmbeddable;
 
 public final class AccountMapper {
@@ -14,8 +14,7 @@ public final class AccountMapper {
                 jpa.getPersistenceVersion(),
                 jpa.getPassword().toDomain(),
                 jpa.isMfaRequired(),
-                new HierarchyLevel(jpa.getHierarchyLevel()),
-                new Scopes(jpa.getScopes()),
+                Role.valueOf(jpa.getRole()),
                 jpa.getFailedLoginAttempts(),
                 jpa.getCreatedAt(),
                 jpa.getUpdatedAt(),
@@ -32,8 +31,7 @@ public final class AccountMapper {
                 domain.getPersistenceVersion(),
                 PasswordEmbeddable.fromDomain(domain.getPassword()),
                 domain.requiresMfa(),
-                domain.getHierarchy().value(),
-                domain.getScopes().value(),
+                domain.getRole().name(),
                 domain.getFailedLoginAttempts(),
                 domain.getCreatedAt(),
                 domain.getUpdatedAt(),

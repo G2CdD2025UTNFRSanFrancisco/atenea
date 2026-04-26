@@ -7,7 +7,7 @@ import java.time.Instant;
 public record AccountDetailsResponse (
     long id,
     String username,
-    long scopes,
+    String role,
     boolean mfa,
     Instant createdAt,
     Instant updatedAt,
@@ -18,7 +18,7 @@ public record AccountDetailsResponse (
         return new AccountDetailsResponse(
                 snapshot.id().value(),
                 snapshot.username().value(),
-                snapshot.scopes().value(),
+                snapshot.role().name(),
                 snapshot.mfa(),
                 snapshot.createdAt(),
                 snapshot.updatedAt(),

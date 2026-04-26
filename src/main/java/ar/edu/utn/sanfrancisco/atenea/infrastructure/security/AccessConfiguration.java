@@ -1,12 +1,11 @@
 package ar.edu.utn.sanfrancisco.atenea.infrastructure.security;
 
-import ar.edu.utn.sanfrancisco.atenea.domain.account.scope.Scope;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.role.Role;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.token.claims.AccessTokenClaims;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.convert.converter.Converter;
 import org.springframework.http.HttpMethod;
-import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -20,7 +19,9 @@ import org.springframework.security.oauth2.server.resource.web.DefaultBearerToke
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfigurationSource;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
 
 @Configuration
 public class AccessConfiguration {
@@ -71,9 +72,15 @@ public class AccessConfiguration {
     private Converter<Jwt, Collection<GrantedAuthority>> accessTokenAuthoritiesConverter() {
         return jwt -> {
             final List<GrantedAuthority> authorities = new ArrayList<>();
-            parseScopes(jwt.getClaim(AccessTokenClaims.SCOPES_FIELD)).stream()
-                    .map(scope -> new SimpleGrantedAuthority("SCOPE_" + scope.name()))
-                    .forEach(authorities::add);
+            final String roleClaim = jwt.getClaimAsString(AccessTokenClaims.ROLE_FIELD);
+            if (roleClaim != null && !roleClaim.isBlank()) {
+                try {
+                    final Role role = Role.valueOf(roleClaim);
+                    authorities.add(new SimpleGrantedAuthority("ROLE_" + role.name()));
+                } catch (IllegalArgumentException ignored) {
+                    // Ignore invalid role claims.
+                }
+            }
 
             final String acr = jwt.getClaimAsString(AccessTokenClaims.ACR_FIELD);
             if (acr != null && !acr.isBlank()) {
@@ -90,31 +97,5 @@ public class AccessConfiguration {
         return converter;
     }
 
-    private Set<Scope> parseScopes(Object rawScopeClaim) {
-        if (rawScopeClaim == null) {
-            return Set.of();
-        }
-
-        final long scopeBits;
-        if (rawScopeClaim instanceof Number number) {
-            scopeBits = number.longValue();
-        } else if (rawScopeClaim instanceof String str) {
-            try {
-                scopeBits = Long.parseLong(str);
-            } catch (NumberFormatException ex) {
-                return Set.of();
-            }
-        } else {
-            return Set.of();
-        }
-
-        final List<Scope> scopes = new ArrayList<>();
-        for (Scope scope : Scope.values()) {
-            if ((scopeBits & (1L << scope.ordinal())) != 0) {
-                scopes.add(scope);
-            }
-        }
-        return Set.copyOf(scopes);
-    }
 
 }

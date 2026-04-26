@@ -1,11 +1,9 @@
 package ar.edu.utn.sanfrancisco.atenea.infrastructure.account;
 
+import ar.edu.utn.sanfrancisco.atenea.application.account.command.ChangePasswordUseCase;
 import ar.edu.utn.sanfrancisco.atenea.application.account.command.CreateAccountUseCase;
 import ar.edu.utn.sanfrancisco.atenea.application.account.command.DeleteAccountUseCase;
-import ar.edu.utn.sanfrancisco.atenea.application.account.command.ChangePasswordUseCase;
-import ar.edu.utn.sanfrancisco.atenea.application.account.command.GrantScopeUseCase;
-import ar.edu.utn.sanfrancisco.atenea.application.account.command.RevokeScopeUseCase;
-import ar.edu.utn.sanfrancisco.atenea.application.account.command.SetScopesUseCase;
+import ar.edu.utn.sanfrancisco.atenea.application.account.command.SetRoleUseCase;
 import ar.edu.utn.sanfrancisco.atenea.application.account.query.GetAccountDetailsUseCase;
 import ar.edu.utn.sanfrancisco.atenea.application.account.query.GetAllAccountDetailsUseCase;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountRepository;
@@ -52,27 +50,11 @@ public class AccountConfiguration {
     }
 
     @Bean
-    public SetScopesUseCase provideSetScopesUseCase(
+    public SetRoleUseCase provideSetRoleUseCase(
             final AccountRepository accountRepository,
             final Clock clock
     ) {
-        return new SetScopesUseCase(accountRepository, clock);
-    }
-
-    @Bean
-    public GrantScopeUseCase provideGrantScopeUseCase(
-            final AccountRepository accountRepository,
-            final Clock clock
-    ) {
-        return new GrantScopeUseCase(accountRepository, clock);
-    }
-
-    @Bean
-    public RevokeScopeUseCase provideRevokeScopeUseCase(
-            final AccountRepository accountRepository,
-            final Clock clock
-    ) {
-        return new RevokeScopeUseCase(accountRepository, clock);
+        return new SetRoleUseCase(accountRepository, clock);
     }
 
     @Bean
@@ -84,4 +66,3 @@ public class AccountConfiguration {
         return new ChangePasswordUseCase(accountRepository, passwordHashService, clock);
     }
 }
-

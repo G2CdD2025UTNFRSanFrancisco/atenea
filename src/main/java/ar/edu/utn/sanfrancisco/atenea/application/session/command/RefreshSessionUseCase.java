@@ -52,7 +52,7 @@ public class RefreshSessionUseCase {
         );
 
         final String accessToken = AccessTokenBuilder.forAccess(account.id())
-                .scopes(account.scopes())
+                .role(account.role())
                 .mfaEnabled(account.mfaEnabled())
                 .sign(this.tokenSigner, this.clock);
         this.sessionRepository.update(session);

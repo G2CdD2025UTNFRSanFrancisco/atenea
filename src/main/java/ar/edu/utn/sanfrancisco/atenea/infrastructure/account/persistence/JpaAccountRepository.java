@@ -1,6 +1,7 @@
 package ar.edu.utn.sanfrancisco.atenea.infrastructure.account.persistence;
 
 import ar.edu.utn.sanfrancisco.atenea.domain.account.*;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.role.Role;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountDetailsSnapshot;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountSessionSnapshot;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountSummarySnapshot;
@@ -43,7 +44,7 @@ public class JpaAccountRepository implements AccountRepository {
                 select new ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountSessionSnapshot(
                     a.id,
                     a.version,
-                    a.scopes,
+                    a.role,
                     a.mfaRequired
                 )
                 from AccountEntity a
@@ -63,7 +64,7 @@ public class JpaAccountRepository implements AccountRepository {
                 select new ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountDetailsSnapshot(
                     a.id,
                     a.username,
-                    a.scopes,
+                    a.role,
                     a.mfaRequired,
                     a.createdAt,
                     a.updatedAt,
@@ -83,7 +84,8 @@ public class JpaAccountRepository implements AccountRepository {
                 select new ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountSummarySnapshot(
                     a.id,
                     a.username,
-                    a.mfaRequired
+                    a.mfaRequired,
+                    a.role
                 )
                 from AccountEntity a
                 order by a.id
@@ -104,9 +106,25 @@ public class JpaAccountRepository implements AccountRepository {
                 query
         );
     }
+
     @Override
     public boolean existsByUsername(Username username) {
         return repository.existsByUsernameAndDeletedAtIsNull(username.value());
+    }
+
+    @Override
+    public boolean existsActiveOwnerExcept(final AccountId accountId) {
+        final Long count = em.createQuery("""
+                select count(a)
+                from AccountEntity a
+                where a.role = :role
+                  and a.deletedAt is null
+                  and a.id <> :accountId
+                """, Long.class)
+                .setParameter("role", Role.OWNER.name())
+                .setParameter("accountId", accountId.value())
+                .getSingleResult();
+        return count > 0;
     }
 
     @Override

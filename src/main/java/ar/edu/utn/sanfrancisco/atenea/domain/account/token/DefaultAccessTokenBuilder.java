@@ -1,7 +1,7 @@
 package ar.edu.utn.sanfrancisco.atenea.domain.account.token;
 
 import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountId;
-import ar.edu.utn.sanfrancisco.atenea.domain.account.scope.Scopes;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.role.Role;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.token.claims.AccessTokenClaims;
 
 import java.time.Clock;
@@ -11,7 +11,7 @@ import java.util.Objects;
 
 public class DefaultAccessTokenBuilder extends AccessTokenBuilder {
 
-    private Scopes scopes;
+    private Role role;
     private Boolean mfaEnabled;
     private static final Duration DURATION = Duration.ofMinutes(5);
 
@@ -19,8 +19,8 @@ public class DefaultAccessTokenBuilder extends AccessTokenBuilder {
         super(accountId);
     }
 
-    public DefaultAccessTokenBuilder scopes(Scopes scopes) {
-        this.scopes = scopes;
+    public DefaultAccessTokenBuilder role(final Role role) {
+        this.role = role;
         return this;
     }
 
@@ -32,7 +32,7 @@ public class DefaultAccessTokenBuilder extends AccessTokenBuilder {
     @Override
     protected void validate() {
         Objects.requireNonNull(getAccountId());
-        Objects.requireNonNull(scopes);
+        Objects.requireNonNull(role);
         Objects.requireNonNull(mfaEnabled);
     }
 
@@ -44,7 +44,7 @@ public class DefaultAccessTokenBuilder extends AccessTokenBuilder {
                 getAccountId(),
                 now,
                 now.plus(DURATION),
-                scopes,
+                role,
                 mfaEnabled ? AccessTokenClaims.ACR_MFA : AccessTokenClaims.ACR_PASSWORD
         ));
     }

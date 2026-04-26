@@ -2,20 +2,20 @@ package ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot;
 
 import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountId;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.SessionVersion;
-import ar.edu.utn.sanfrancisco.atenea.domain.account.scope.Scopes;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.role.Role;
 
 public record AccountSessionSnapshot(
         AccountId id,
         SessionVersion version,
-        Scopes scopes,
+        Role role,
         boolean mfaEnabled
 ) {
     public AccountSessionSnapshot(
             Long id,
             Long version,
-            long scopes,
+            String role,
             boolean mfaEnabled
     ) {
-        this(new AccountId(id), new SessionVersion(version), new Scopes(scopes), mfaEnabled);
+        this(new AccountId(id), new SessionVersion(version), Role.valueOf(role), mfaEnabled);
     }
 }

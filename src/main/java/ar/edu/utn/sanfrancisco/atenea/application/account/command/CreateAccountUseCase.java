@@ -40,7 +40,6 @@ public class CreateAccountUseCase {
             Account newAccount = Account.create(
                     username,
                     password,
-                    HierarchyLevel.min(),
                     idGenerator,
                     hashService,
                     clock

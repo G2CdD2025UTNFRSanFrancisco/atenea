@@ -6,17 +6,13 @@ import ar.edu.utn.sanfrancisco.atenea.domain.account.credential.Password;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.credential.PasswordHashService;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.credential.PlainPassword;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.exception.*;
-import ar.edu.utn.sanfrancisco.atenea.domain.account.exception.MfaRequiredForHighPrivilegeException;
-import ar.edu.utn.sanfrancisco.atenea.domain.account.scope.Scope;
-import ar.edu.utn.sanfrancisco.atenea.domain.account.scope.Scopes;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.role.Role;
 import ar.edu.utn.sanfrancisco.atenea.domain.identity.IdentityGenerator;
 import lombok.Getter;
-import lombok.Setter;
 
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.Set;
 
 @Getter
 public class Account {
@@ -29,10 +25,8 @@ public class Account {
     private SessionVersion version;
 
     private Password password;
-    @Setter
     private boolean mfaRequired;
-    private HierarchyLevel hierarchy;
-    private Scopes scopes;
+    private Role role;
     private int failedLoginAttempts;
 
     private final Instant createdAt;
@@ -49,8 +43,7 @@ public class Account {
             final Long persistenceVersion,
             final Password password,
             final boolean mfaRequired,
-            final HierarchyLevel hierarchy,
-            final Scopes scopes,
+            final Role role,
             final int failedLoginAttempts,
             final Instant createdAt,
             final Instant updatedAt,
@@ -63,8 +56,7 @@ public class Account {
         this.persistenceVersion = persistenceVersion;
         this.password = password;
         this.mfaRequired = mfaRequired;
-        this.hierarchy = hierarchy;
-        this.scopes = scopes;
+        this.role = role;
         this.failedLoginAttempts = failedLoginAttempts;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
@@ -77,14 +69,13 @@ public class Account {
     public static Account create(
             final Username username,
             final PlainPassword plain,
-            final HierarchyLevel hierarchy,
             final IdentityGenerator idGen,
             final PasswordHashService hasher,
             final Clock clock
     ) {
-        Instant now = clock.instant();
+        final Instant now = clock.instant();
 
-        Password password = new Password(
+        final Password password = new Password(
                 hasher.hash(plain),
                 true,
                 now
@@ -97,8 +88,7 @@ public class Account {
                 null,
                 password,
                 false,
-                hierarchy,
-                Scopes.empty(),
+                Role.USER,
                 0,
                 now,
                 now,
@@ -114,8 +104,7 @@ public class Account {
             final Long persistenceVersion,
             final Password password,
             final boolean mfaRequired,
-            final HierarchyLevel hierarchy,
-            final Scopes scopes,
+            final Role role,
             final int failedLoginAttempts,
             final Instant createdAt,
             final Instant updatedAt,
@@ -129,8 +118,7 @@ public class Account {
                 persistenceVersion,
                 password,
                 mfaRequired,
-                hierarchy,
-                scopes,
+                role,
                 failedLoginAttempts,
                 createdAt,
                 updatedAt,
@@ -165,7 +153,7 @@ public class Account {
                 return new AuthenticationResult.Locked(lockedUntil);
             }
 
-            boolean matches = password.matches(plain, hasher);
+            final boolean matches = password.matches(plain, hasher);
 
             if (!matches) {
                 registerFailedAttempt(now);
@@ -187,84 +175,57 @@ public class Account {
         touch(Instant.now(clock));
     }
 
-    private void checkHierarchy(final Account actor) {
-        if (!actor.getHierarchy().canCommand(this.hierarchy) && !actor.equals(this)) {
-            throw new InsufficientHierarchyException(actor.getId(), this.id);
+    private void ensureActorCanOperateOnTarget(final Account actor) {
+        if (actor.equals(this)) {
+            return;
         }
-    }
-
-    private void checkActorHasScopes(final Account actor, final Scopes scope) {
-        checkHierarchy(actor);
-        if (actor.containsScopes(scope)) {
-            throw new InsufficientPermissionsException(scopes.toSet());
+        if (!actor.getRole().canOperateOn(this.role)) {
+            throw new InsufficientPermissionsException("role hierarchy");
         }
-    }
-
-    public boolean containsScope(final Scope scope) {
-        return this.scopes.contains(scope);
-    }
-
-    public boolean containsScopes(final Scopes scopes) {
-        return this.scopes.contains(scopes);
     }
 
     public boolean isAdmin() {
-        return this.scopes.isAdmin();
+        return this.role == Role.ADMIN;
     }
 
-    public boolean canManageSessionsOf(Account other) {
+    public boolean isOwner() {
+        return this.role == Role.OWNER;
+    }
+
+    public boolean canManageSessionsOf(final Account other) {
         if (this.equals(other)) return true;
-        return this.isAdmin() || this.containsScope(Scope.MANAGE_SESSIONS);
+        return this.role.canOperateOn(other.role);
     }
 
-    public void allows(final Account actor, final Scope requiredScope) {
-        if (this.id.equals(actor.getId())) {
-            return;
-        }
-        if (!actor.getHierarchy().canCommand(this.hierarchy)) {
-            throw new InsufficientHierarchyException(actor.getId(), this.id);
-        }
-        if (!actor.isAdmin() && !actor.containsScope(requiredScope)) {
-            throw new InsufficientPermissionsException(Set.of(requiredScope));
+    public void allowsRoleManagementBy(final Account actor) {
+        ensureActorCanOperateOnTarget(actor);
+        if (!actor.getRole().canManageAccounts()) {
+            throw new InsufficientPermissionsException("ROLE_ADMIN or ROLE_OWNER");
         }
     }
 
-    public void grantScope(final Scope scope, final Account actor, final Clock clock) {
+    public void setRole(final Role role, final Account actor, final Clock clock) {
         if (deletedAt != null) throw new AccountDeletedException();
-        checkHierarchy(actor);
-        checkActorHasScopes(actor, Scopes.of(scope));
-        final Set<Scope> requiresHighAssurance = scopes.getRequiresHighAssurance();
-        if (!requiresHighAssurance.isEmpty() && !requiresMfa()) {
-            throw new MfaRequiredForHighPrivilegeException(requiresHighAssurance);
+        ensureActorCanOperateOnTarget(actor);
+        if (!actor.getRole().canManageAccounts()) {
+            throw new InsufficientPermissionsException("ROLE_ADMIN or ROLE_OWNER");
         }
-        if (!this.scopes.contains(scope)) {
-            this.scopes = this.scopes.grant(scope);
+        if (role.requiresHighAssurance() && !this.mfaRequired) {
+            throw new MfaRequiredForHighPrivilegeException(role.name());
+        }
+        if (this.role != role) {
+            this.role = role;
+            validateInvariants();
             touch(Instant.now(clock));
         }
     }
 
-    public void revokeScope(final Scope scope, final Account actor, final Clock clock) {
-        if (deletedAt != null) throw new AccountDeletedException();
-        checkHierarchy(actor);
-        if (!actor.containsScope(scope)) throw new InsufficientPermissionsException(Set.of(scope));
-        if (this.scopes.contains(scope)) {
-            if (scope == Scope.ADMIN && this.equals(actor)) {
-                throw new CannotRevokeOwnAdminException(this.id);
-            }
-            this.scopes = this.scopes.revoke(scope);
-            touch(Instant.now(clock));
+    public void setMfaRequired(final boolean mfaRequired) {
+        if (!mfaRequired && this.role.requiresHighAssurance()) {
+            throw new CannotDisableMfaWithHighPrivilegesException(this.role.name());
         }
-    }
-
-    public void setScopes(final Scopes scopes, final Account actor, final Clock clock) {
-        checkHierarchy(actor);
-        checkActorHasScopes(actor, scopes);
-        final Set<Scope> requiresHighAssurance = scopes.getRequiresHighAssurance();
-        if (!requiresHighAssurance.isEmpty() && !requiresMfa()) {
-            throw new MfaRequiredForHighPrivilegeException(requiresHighAssurance);
-        }
-        this.scopes = scopes;
-        touch(Instant.now(clock));
+        this.mfaRequired = mfaRequired;
+        validateInvariants();
     }
 
     public void changePassword(
@@ -283,9 +244,7 @@ public class Account {
         if (deletedAt != null) {
             throw new AccountAlreadyDeletedException();
         }
-        if (!actor.getHierarchy().canCommand(this.hierarchy) && !actor.equals(this)) {
-            throw new InsufficientHierarchyException(actor.getId(), this.getId());
-        }
+        ensureActorCanOperateOnTarget(actor);
         this.deletedAt = clock.instant();
         bumpVersion();
     }
@@ -313,9 +272,12 @@ public class Account {
     }
 
     private void validateInvariants() {
-        if (!scopes.getRequiresHighAssurance().isEmpty() && !requiresMfa()) {
-            if (this.id.value() == 0L) return; // Allow creating an initial admin account without MFA
-            throw new IllegalStateException("Account with high assurance scopes must have MFA enabled");
+        if (role == null) {
+            throw new IllegalStateException("Role is required");
+        }
+        if (this.role.requiresHighAssurance() && !requiresMfa()) {
+            if (this.id.value() == 0L) return; // Allow bootstrap owner before MFA enrollment.
+            throw new IllegalStateException("Account with role " + role + " must have MFA enabled");
         }
     }
 
