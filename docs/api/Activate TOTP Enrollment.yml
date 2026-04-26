@@ -6,6 +6,15 @@ info:
 http:
   method: POST
   url: "{{BASE_URL}}/mfa/totp/activation"
+  headers:
+    - name: Authorization
+      value: Bearer {{AccessToken}}
+  body:
+    type: json
+    data: |-
+      {
+        "totp_code": ""
+      }
   auth: inherit
 
 settings:
