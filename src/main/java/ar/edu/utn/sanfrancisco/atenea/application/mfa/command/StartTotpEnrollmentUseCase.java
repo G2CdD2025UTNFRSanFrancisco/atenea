@@ -1,5 +1,6 @@
 package ar.edu.utn.sanfrancisco.atenea.application.mfa.command;
 
+import ar.edu.utn.sanfrancisco.atenea.application.mfa.command.dto.StartTotpEnrollmentResult;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.Account;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountId;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountRepository;

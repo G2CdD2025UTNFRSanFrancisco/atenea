@@ -1,4 +1,4 @@
-package ar.edu.utn.sanfrancisco.atenea.application.mfa.command;
+package ar.edu.utn.sanfrancisco.atenea.application.mfa.command.dto;
 
 import ar.edu.utn.sanfrancisco.atenea.domain.secret.PlainSecret;
 

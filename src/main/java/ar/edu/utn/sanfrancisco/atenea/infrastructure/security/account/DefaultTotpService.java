@@ -4,12 +4,13 @@ import ar.edu.utn.sanfrancisco.atenea.domain.mfa.factor.totp.TotpCode;
 import ar.edu.utn.sanfrancisco.atenea.domain.mfa.factor.totp.TotpService;
 import ar.edu.utn.sanfrancisco.atenea.domain.secret.PlainSecret;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.codec.binary.Base32;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
+import java.net.URLEncoder;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Arrays;
@@ -23,16 +24,13 @@ public class DefaultTotpService implements TotpService {
     private static final int CODE_DIGITS = 6;
     private static final int WINDOW = 1;
 
-    private static final Base32 BASE32 = new Base32();
     private final SecureRandom random = new SecureRandom();
 
     @Override
     public PlainSecret generateSecret() {
         byte[] bytes = new byte[SECRET_BYTES];
         random.nextBytes(bytes);
-        final var secret = PlainSecret.fromBytes(bytes);
-        log.info("Generated {}", secret);
-        return secret;
+        return PlainSecret.fromBytes(bytes);
     }
 
     @Override
@@ -94,19 +92,22 @@ public class DefaultTotpService implements TotpService {
     }
 
     public String buildOtpAuthUri(String issuer, String accountName, PlainSecret secret) {
+        final String encodedIssuer = urlEncode(issuer);
+        final String encodedAccountName = urlEncode(accountName);
         return String.format(
                 "otpauth://totp/%s:%s?secret=%s&issuer=%s&algorithm=SHA1&digits=%d&period=%d",
-                urlEncode(issuer),
-                urlEncode(accountName),
-                secret.toString(),
-                urlEncode(issuer),
+                encodedIssuer,
+                encodedAccountName,
+                secret,
+                encodedIssuer,
                 CODE_DIGITS,
                 TIME_STEP_SECONDS
         );
     }
 
     private String urlEncode(String value) {
-        return value.replace(" ", "%20");
+        // URLEncoder representa espacios como '+', para URIs preferimos '%20'.
+        return URLEncoder.encode(value, StandardCharsets.UTF_8).replace("+", "%20");
     }
 
     private String zeroPad(int otp) {

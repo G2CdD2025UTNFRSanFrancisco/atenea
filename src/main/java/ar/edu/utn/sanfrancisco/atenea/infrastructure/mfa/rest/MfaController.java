@@ -4,7 +4,7 @@ import ar.edu.utn.sanfrancisco.atenea.application.mfa.command.ActivateTotpUseCas
 import ar.edu.utn.sanfrancisco.atenea.application.mfa.command.DisableMfaUseCase;
 import ar.edu.utn.sanfrancisco.atenea.application.mfa.command.RegenerateRecoveryCodesUseCase;
 import ar.edu.utn.sanfrancisco.atenea.application.mfa.command.StartTotpEnrollmentUseCase;
-import ar.edu.utn.sanfrancisco.atenea.application.mfa.command.StartTotpEnrollmentResult;
+import ar.edu.utn.sanfrancisco.atenea.application.mfa.command.dto.StartTotpEnrollmentResult;
 import ar.edu.utn.sanfrancisco.atenea.application.mfa.command.VerifyTotpUseCase;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountId;
 import ar.edu.utn.sanfrancisco.atenea.domain.mfa.factor.totp.TotpCode;
