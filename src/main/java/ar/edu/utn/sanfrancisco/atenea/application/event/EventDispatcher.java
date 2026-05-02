@@ -7,6 +7,7 @@ import java.util.Set;
 public interface EventDispatcher {
 
     void publish(final Event event);
+
     void publishAll(final Set<Event> events);
 
 }

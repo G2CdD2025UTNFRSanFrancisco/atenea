@@ -8,12 +8,6 @@ public record LoginResponse(
         String refreshToken,
         AccountId accountId
 ) {
-    public enum Status {
-        SUCCESS,
-        MFA_REQUIRED,
-        PASSWORD_CHANGE_REQUIRED
-    }
-
     public static LoginResponse success(String token, String refreshToken, AccountId accountId) {
         return new LoginResponse(Status.SUCCESS, token, refreshToken, accountId);
     }
@@ -24,5 +18,11 @@ public record LoginResponse(
 
     public static LoginResponse passwordChangeRequired(String transitionToken, AccountId accountId) {
         return new LoginResponse(Status.PASSWORD_CHANGE_REQUIRED, transitionToken, null, accountId);
+    }
+
+    public enum Status {
+        SUCCESS,
+        MFA_REQUIRED,
+        PASSWORD_CHANGE_REQUIRED
     }
 }

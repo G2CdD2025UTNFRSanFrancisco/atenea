@@ -133,14 +133,10 @@ public class CreateSessionUseCase {
                         .sign(tokenSigner, clock);
                 yield LoginResponse.passwordChangeRequired(token, account.getId());
             }
-            case AuthenticationResult.Locked l ->
-                    throw new AccountLockedException(l.until());
-            case AuthenticationResult.Deleted d ->
-                    throw new InvalidCredentialsException();
-            case AuthenticationResult.InvalidCredentials i ->
-                    throw new InvalidCredentialsException();
-            default ->
-                    throw new IllegalStateException("Unexpected value: " + result);
+            case AuthenticationResult.Locked l -> throw new AccountLockedException(l.until());
+            case AuthenticationResult.Deleted d -> throw new InvalidCredentialsException();
+            case AuthenticationResult.InvalidCredentials i -> throw new InvalidCredentialsException();
+            default -> throw new IllegalStateException("Unexpected value: " + result);
         };
     }
 

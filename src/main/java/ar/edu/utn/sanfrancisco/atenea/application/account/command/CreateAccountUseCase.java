@@ -1,7 +1,10 @@
 package ar.edu.utn.sanfrancisco.atenea.application.account.command;
 
 import ar.edu.utn.sanfrancisco.atenea.application.account.command.dto.CreateAccountCommand;
-import ar.edu.utn.sanfrancisco.atenea.domain.account.*;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.Account;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountId;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountRepository;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.Username;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.credential.PasswordHashService;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.credential.PlainPassword;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.exception.AccountAlreadyExistsException;

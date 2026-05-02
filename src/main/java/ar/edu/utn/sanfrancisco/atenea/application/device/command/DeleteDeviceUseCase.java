@@ -22,7 +22,7 @@ public class DeleteDeviceUseCase {
 
     public void execute(final DeleteDeviceCommand command) {
         final Device device = this.deviceRepository.findDeviceById(command.deviceId())
-                        .orElseThrow(() -> new DeviceNotFoundException(command.deviceId()));
+                .orElseThrow(() -> new DeviceNotFoundException(command.deviceId()));
         device.delete(this.clock);
         this.deviceRepository.update(device);
     }

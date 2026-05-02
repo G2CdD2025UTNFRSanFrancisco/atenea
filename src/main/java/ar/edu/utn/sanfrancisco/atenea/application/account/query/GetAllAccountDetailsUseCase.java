@@ -1,7 +1,6 @@
 package ar.edu.utn.sanfrancisco.atenea.application.account.query;
 
 import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountRepository;
-import ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountDetailsSnapshot;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.snapshot.AccountSummarySnapshot;
 import ar.edu.utn.sanfrancisco.atenea.domain.shared.PagedResult;
 import ar.edu.utn.sanfrancisco.atenea.domain.shared.PaginationQuery;

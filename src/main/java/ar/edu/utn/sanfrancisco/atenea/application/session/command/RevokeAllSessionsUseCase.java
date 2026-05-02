@@ -35,7 +35,7 @@ public class RevokeAllSessionsUseCase {
                 .orElseThrow(InvalidSessionException::new);
         final Account target = command.isSelfOperation() ? operator :
                 this.accountRepository.findAccountById(command.targetId())
-                        .orElseThrow(() -> new AccountNotFoundException(command.targetId()));
+                .orElseThrow(() -> new AccountNotFoundException(command.targetId()));
         target.allowsRoleManagementBy(operator);
         target.invalidateSessions(clock);
         this.accountRepository.update(target);

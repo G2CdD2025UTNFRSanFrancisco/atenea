@@ -2,12 +2,12 @@ package ar.edu.utn.sanfrancisco.atenea.application.device.command;
 
 import ar.edu.utn.sanfrancisco.atenea.application.device.command.dto.CreateDeviceCommand;
 import ar.edu.utn.sanfrancisco.atenea.application.device.command.dto.CreateDeviceResult;
-import ar.edu.utn.sanfrancisco.atenea.domain.identity.IdentityGenerator;
-import ar.edu.utn.sanfrancisco.atenea.domain.secret.PlainSecret;
-import ar.edu.utn.sanfrancisco.atenea.domain.secret.SecretHashService;
 import ar.edu.utn.sanfrancisco.atenea.domain.device.Device;
 import ar.edu.utn.sanfrancisco.atenea.domain.device.DeviceRepository;
 import ar.edu.utn.sanfrancisco.atenea.domain.device.DeviceSecretGenerator;
+import ar.edu.utn.sanfrancisco.atenea.domain.identity.IdentityGenerator;
+import ar.edu.utn.sanfrancisco.atenea.domain.secret.PlainSecret;
+import ar.edu.utn.sanfrancisco.atenea.domain.secret.SecretHashService;
 import ar.edu.utn.sanfrancisco.atenea.domain.spot.ParkingSpotRepository;
 import ar.edu.utn.sanfrancisco.atenea.domain.spot.exception.ParkingSpotAlreadyAssignedException;
 import ar.edu.utn.sanfrancisco.atenea.domain.spot.exception.ParkingSpotNotFoundException;
@@ -42,8 +42,10 @@ public class CreateDeviceUseCase {
 
     @Transactional
     public CreateDeviceResult execute(final CreateDeviceCommand command) {
-        if (deviceRepository.existsByParkingSpotId(command.spotId())) throw new ParkingSpotAlreadyAssignedException(command.spotId());
-        if (!parkingSpotRepository.existsById(command.spotId())) throw new ParkingSpotNotFoundException(command.spotId());
+        if (deviceRepository.existsByParkingSpotId(command.spotId()))
+            throw new ParkingSpotAlreadyAssignedException(command.spotId());
+        if (!parkingSpotRepository.existsById(command.spotId()))
+            throw new ParkingSpotNotFoundException(command.spotId());
 
         final PlainSecret secret = this.deviceSecretGenerator.generateSecure();
         final Device device = Device.create(
