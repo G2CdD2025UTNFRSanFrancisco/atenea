@@ -5,7 +5,7 @@ plugins {
 }
 
 group = "ar.edu.utn.sanfrancisco"
-version = "0.0.1-SNAPSHOT"
+version = "1.0.1"
 description = "atenea"
 
 java {
