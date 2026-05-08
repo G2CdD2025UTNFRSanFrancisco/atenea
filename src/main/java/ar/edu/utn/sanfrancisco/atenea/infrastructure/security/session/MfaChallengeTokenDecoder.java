@@ -2,29 +2,27 @@ package ar.edu.utn.sanfrancisco.atenea.infrastructure.security.session;
 
 import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountId;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.token.TokenPurpose;
+import ar.edu.utn.sanfrancisco.atenea.domain.session.DeviceId;
 import ar.edu.utn.sanfrancisco.atenea.domain.session.exceptions.InvalidMfaChallengeTokenException;
-import ar.edu.utn.sanfrancisco.atenea.infrastructure.security.jwt.TokenPurposeJwtDecoderFactory;
-import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.security.oauth2.jwt.JwtDecoder;
-import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Component;
 
 @Component
 public class MfaChallengeTokenDecoder {
 
-    private final JwtDecoder jwtDecoder;
+    private final OpaqueTransitionTokenService opaqueTransitionTokenService;
 
-    public MfaChallengeTokenDecoder(final TokenPurposeJwtDecoderFactory tokenPurposeJwtDecoderFactory) {
-        this.jwtDecoder = tokenPurposeJwtDecoderFactory.create(TokenPurpose.MFA_CHALLENGE);
+    public MfaChallengeTokenDecoder(final OpaqueTransitionTokenService opaqueTransitionTokenService) {
+        this.opaqueTransitionTokenService = opaqueTransitionTokenService;
     }
 
-    public AccountId accountIdFrom(final String transitionToken) {
-        try {
-            final Jwt jwt = jwtDecoder.decode(transitionToken);
-            return new AccountId(Long.parseLong(jwt.getSubject()));
-        } catch (JwtException | NumberFormatException ex) {
-            throw new InvalidMfaChallengeTokenException();
-        }
+    public AccountId accountIdFrom(final String transitionToken, final DeviceId deviceId) {
+        return opaqueTransitionTokenService
+                .lookupAccountId(transitionToken, TokenPurpose.MFA_CHALLENGE, deviceId)
+                .orElseThrow(InvalidMfaChallengeTokenException::new);
+    }
+
+    public void consume(final String transitionToken, final DeviceId deviceId) {
+        opaqueTransitionTokenService.consumeToken(transitionToken, TokenPurpose.MFA_CHALLENGE, deviceId);
     }
 
 }

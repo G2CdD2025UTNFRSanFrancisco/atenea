@@ -28,9 +28,9 @@ import ar.edu.utn.sanfrancisco.atenea.infrastructure.session.rest.dto.SessionAcc
 import ar.edu.utn.sanfrancisco.atenea.infrastructure.security.session.MfaChallengeTokenDecoder;
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.CookieValue;
@@ -44,12 +44,15 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Arrays;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/sessions")
 public class SessionController {
 
-    private static final String BEARER_PREFIX = "Bearer ";
     private static final String REFRESH_TOKEN_COOKIE = "refresh_token";
+    private static final String MFA_CHALLENGE_TOKEN_COOKIE = "mfa_challenge_token";
+    private static final String PASSWORD_RESET_TOKEN_COOKIE = "password_reset_token";
+    private static final long TRANSITION_COOKIE_MAX_AGE_SECONDS = 120;
 
     private final CreateSessionUseCase createSessionUseCase;
     private final CompleteTotpMfaUseCase completeTotpMfaUseCase;
@@ -97,17 +100,26 @@ public class SessionController {
     @PostMapping("/mfa")
     public SessionAccessResponse createFromMfa(
             @RequestHeader("X-Device-Id") final String deviceId,
-            @RequestHeader("X-MFA-Token") final String authorizationHeader,
+            @CookieValue(value = MFA_CHALLENGE_TOKEN_COOKIE, required = false) final String mfaChallengeToken,
             @Valid @RequestBody final CompleteMfaSessionRequest request,
             final HttpServletResponse response
     ) {
-        final AccountId accountId = mfaChallengeTokenDecoder.accountIdFrom(extractTransitionToken(authorizationHeader));
-        final LoginResponse loginResponse = completeTotpMfaUseCase.execute(
-                accountId,
-                new DeviceId(deviceId),
-                new TotpCode(request.totpCode())
-        );
-        return toSessionAccessResponseAndAttachCookie(loginResponse, response);
+        final String transitionToken = requireTransitionToken(mfaChallengeToken);
+        try {
+            final AccountId accountId = mfaChallengeTokenDecoder.accountIdFrom(
+                    transitionToken,
+                    new DeviceId(deviceId)
+            );
+            final LoginResponse loginResponse = completeTotpMfaUseCase.execute(
+                    accountId,
+                    new DeviceId(deviceId),
+                    new TotpCode(request.totpCode())
+            );
+            mfaChallengeTokenDecoder.consume(transitionToken, new DeviceId(deviceId));
+            return toSessionAccessResponseAndAttachCookie(loginResponse, response);
+        } finally {
+            clearMfaChallengeCookie(response);
+        }
     }
 
     @PostMapping("/refresh")
@@ -171,14 +183,28 @@ public class SessionController {
             final LoginResponse loginResponse,
             final HttpServletResponse response
     ) {
-        if (loginResponse.refreshToken() != null) {
+        clearTransitionCookies(response);
+
+        if (loginResponse.status() == LoginResponse.Status.SUCCESS && loginResponse.refreshToken() != null) {
             attachRefreshCookie(response, loginResponse.refreshToken());
+        } else if (loginResponse.status() == LoginResponse.Status.MFA_REQUIRED && loginResponse.accessToken() != null) {
+            attachMfaChallengeCookie(response, loginResponse.accessToken());
+        } else if (loginResponse.status() == LoginResponse.Status.PASSWORD_CHANGE_REQUIRED && loginResponse.accessToken() != null) {
+            attachPasswordResetCookie(response, loginResponse.accessToken());
         }
+
         return new SessionAccessResponse(
                 SessionAccessResponse.Status.valueOf(loginResponse.status().name()),
-                loginResponse.accessToken(),
+                loginResponse.status() == LoginResponse.Status.SUCCESS ? loginResponse.accessToken() : null,
                 loginResponse.accountId().value()
         );
+    }
+
+    private String requireTransitionToken(final String transitionToken) {
+        if (transitionToken == null || transitionToken.isBlank()) {
+            throw new InvalidMfaChallengeTokenException();
+        }
+        return transitionToken;
     }
 
     private String requireRefreshToken(final String refreshToken) {
@@ -188,21 +214,31 @@ public class SessionController {
         return refreshToken;
     }
 
-    private String extractTransitionToken(final String authorizationHeader) {
-        if (authorizationHeader == null) {
-            throw new InvalidMfaChallengeTokenException();
-        }
+    private void clearTransitionCookies(final HttpServletResponse response) {
+        clearMfaChallengeCookie(response);
+        clearPasswordResetCookie(response);
+    }
 
-        if (!authorizationHeader.regionMatches(true, 0, BEARER_PREFIX, 0, BEARER_PREFIX.length())) {
-            throw new InvalidMfaChallengeTokenException();
-        }
+    private void attachMfaChallengeCookie(final HttpServletResponse response, final String transitionToken) {
+        final ResponseCookie cookie = ResponseCookie.from(MFA_CHALLENGE_TOKEN_COOKIE, transitionToken)
+                .httpOnly(true)
+                .secure(true)
+                .path("/api/v1/sessions/mfa")
+                .sameSite("Strict")
+                .maxAge(TRANSITION_COOKIE_MAX_AGE_SECONDS)
+                .build();
+        response.addHeader("Set-Cookie", cookie.toString());
+    }
 
-        final String token = authorizationHeader.substring(BEARER_PREFIX.length()).trim();
-        if (token.isBlank()) {
-            throw new InvalidMfaChallengeTokenException();
-        }
-
-        return token;
+    private void attachPasswordResetCookie(final HttpServletResponse response, final String transitionToken) {
+        final ResponseCookie cookie = ResponseCookie.from(PASSWORD_RESET_TOKEN_COOKIE, transitionToken)
+                .httpOnly(true)
+                .secure(true)
+                .path("/api/v1/accounts/password")
+                .sameSite("Strict")
+                .maxAge(TRANSITION_COOKIE_MAX_AGE_SECONDS)
+                .build();
+        response.addHeader("Set-Cookie", cookie.toString());
     }
 
     private void attachRefreshCookie(final HttpServletResponse response, final String refreshToken) {
@@ -212,6 +248,28 @@ public class SessionController {
                 .path("/api/v1/sessions")
                 .sameSite("Strict")
                 .maxAge(86400)
+                .build();
+        response.addHeader("Set-Cookie", cookie.toString());
+    }
+
+    private void clearMfaChallengeCookie(final HttpServletResponse response) {
+        final ResponseCookie cookie = ResponseCookie.from(MFA_CHALLENGE_TOKEN_COOKIE, "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/api/v1/sessions/mfa")
+                .sameSite("Strict")
+                .maxAge(0)
+                .build();
+        response.addHeader("Set-Cookie", cookie.toString());
+    }
+
+    private void clearPasswordResetCookie(final HttpServletResponse response) {
+        final ResponseCookie cookie = ResponseCookie.from(PASSWORD_RESET_TOKEN_COOKIE, "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/api/v1/accounts/password")
+                .sameSite("Strict")
+                .maxAge(0)
                 .build();
         response.addHeader("Set-Cookie", cookie.toString());
     }

@@ -6,6 +6,7 @@ import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountId;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountRepository;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.exception.AccountNotFoundException;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.token.AccessTokenBuilder;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.token.TokenPurpose;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.token.TokenSigner;
 import ar.edu.utn.sanfrancisco.atenea.domain.identity.IdentityGenerator;
 import ar.edu.utn.sanfrancisco.atenea.domain.mfa.MfaEnrollment;
@@ -31,6 +32,7 @@ public class CompleteTotpMfaUseCase {
     private final SecretEncryptionService encryptionService;
     private final RefreshTokenGenerator refreshTokenGenerator;
     private final RefreshTokenHashService refreshTokenHashService;
+    private final TransitionTokenService transitionTokenService;
     private final Clock clock;
 
     public CompleteTotpMfaUseCase(
@@ -43,6 +45,7 @@ public class CompleteTotpMfaUseCase {
             SecretEncryptionService encryptionService,
             RefreshTokenGenerator refreshTokenGenerator,
             RefreshTokenHashService refreshTokenHashService,
+            TransitionTokenService transitionTokenService,
             Clock clock
     ) {
         this.mfaRepository = mfaRepository;
@@ -54,6 +57,7 @@ public class CompleteTotpMfaUseCase {
         this.encryptionService = encryptionService;
         this.refreshTokenGenerator = refreshTokenGenerator;
         this.refreshTokenHashService = refreshTokenHashService;
+        this.transitionTokenService = transitionTokenService;
         this.clock = clock;
     }
 
@@ -68,9 +72,11 @@ public class CompleteTotpMfaUseCase {
         mfa.verifyTotp(totpCode, this.totpService, this.encryptionService, this.clock);
 
         if (account.requiresChangePassword()) {
-            final String token = AccessTokenBuilder
-                    .forPasswordReset(account.getId())
-                    .sign(tokenSigner, clock);
+            final String token = transitionTokenService.issue(
+                    account.getId(),
+                    deviceId,
+                    TokenPurpose.PASSWORD_RESET
+            );
             return LoginResponse.passwordChangeRequired(
                     token,
                     accountId

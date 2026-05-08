@@ -15,6 +15,7 @@ import ar.edu.utn.sanfrancisco.atenea.domain.mfa.factor.totp.TotpService;
 import ar.edu.utn.sanfrancisco.atenea.domain.secret.SecretEncryptionService;
 import ar.edu.utn.sanfrancisco.atenea.domain.session.RefreshTokenGenerator;
 import ar.edu.utn.sanfrancisco.atenea.domain.session.RefreshTokenHashService;
+import ar.edu.utn.sanfrancisco.atenea.domain.session.TransitionTokenService;
 import ar.edu.utn.sanfrancisco.atenea.domain.session.SessionRepository;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -34,6 +35,7 @@ public class SessionConfiguration {
             final RefreshTokenGenerator refreshTokenGenerator,
             final RefreshTokenHashService refreshTokenHashService,
             final TokenSigner tokenSigner,
+            final TransitionTokenService transitionTokenService,
             final Clock clock
     ) {
         return new CreateSessionUseCase(
@@ -45,6 +47,7 @@ public class SessionConfiguration {
                 refreshTokenGenerator,
                 refreshTokenHashService,
                 tokenSigner,
+                transitionTokenService,
                 clock
         );
     }
@@ -60,6 +63,7 @@ public class SessionConfiguration {
             final SecretEncryptionService secretEncryptionService,
             final RefreshTokenGenerator refreshTokenGenerator,
             final RefreshTokenHashService refreshTokenHashService,
+            final TransitionTokenService transitionTokenService,
             final Clock clock
     ) {
         return new CompleteTotpMfaUseCase(
@@ -72,6 +76,7 @@ public class SessionConfiguration {
                 secretEncryptionService,
                 refreshTokenGenerator,
                 refreshTokenHashService,
+                transitionTokenService,
                 clock
         );
     }

@@ -10,6 +10,7 @@ import ar.edu.utn.sanfrancisco.atenea.domain.account.credential.PasswordHashServ
 import ar.edu.utn.sanfrancisco.atenea.domain.account.credential.PlainPassword;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.exception.AccountLockedException;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.token.AccessTokenBuilder;
+import ar.edu.utn.sanfrancisco.atenea.domain.account.token.TokenPurpose;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.token.TokenSigner;
 import ar.edu.utn.sanfrancisco.atenea.domain.identity.IdentityGenerator;
 import ar.edu.utn.sanfrancisco.atenea.domain.mfa.MfaEnrollment;
@@ -32,6 +33,7 @@ public class CreateSessionUseCase {
     private final RefreshTokenGenerator refreshTokenGenerator;
     private final RefreshTokenHashService refreshTokenHashService;
     private final TokenSigner tokenSigner;
+    private final TransitionTokenService transitionTokenService;
     private final Clock clock;
 
     public CreateSessionUseCase(
@@ -43,6 +45,7 @@ public class CreateSessionUseCase {
             final RefreshTokenGenerator refreshTokenGenerator,
             final RefreshTokenHashService refreshTokenHashService,
             final TokenSigner tokenSigner,
+            final TransitionTokenService transitionTokenService,
             final Clock clock
     ) {
         this.accountRepository = accountRepository;
@@ -53,6 +56,7 @@ public class CreateSessionUseCase {
         this.refreshTokenGenerator = refreshTokenGenerator;
         this.refreshTokenHashService = refreshTokenHashService;
         this.tokenSigner = tokenSigner;
+        this.transitionTokenService = transitionTokenService;
         this.clock = clock;
     }
 
@@ -70,74 +74,84 @@ public class CreateSessionUseCase {
 
         accountRepository.update(account);
 
-        return switch (result) {
-            case AuthenticationResult.PasswordVerified s -> {
+        if (result instanceof AuthenticationResult.PasswordVerified) {
+            final Instant now = clock.instant();
 
-                final Instant now = clock.instant();
-
-                if (requiresMfa(account.getId(), now)) {
-                    final String token = AccessTokenBuilder
-                            .forMfa(account.getId())
-                            .sign(tokenSigner, clock);
-                    yield LoginResponse.mfaRequired(token, account.getId());
-                }
-
-                final PlainRefreshToken refreshToken = refreshTokenGenerator.generate();
-                final Optional<Session> optional = this.sessionRepository.findByAccountIdAndDeviceId(
+            if (requiresMfa(account.getId(), now)) {
+                final String token = transitionTokenService.issue(
                         account.getId(),
-                        command.deviceId()
+                        command.deviceId(),
+                        TokenPurpose.MFA_CHALLENGE
                 );
+                return LoginResponse.mfaRequired(token, account.getId());
+            }
 
-                if (optional.isEmpty() || !optional.get().isActive(clock)) {
-                    final Session session = Session.create(
-                            account,
-                            command.deviceId(),
-                            refreshToken,
-                            this.identityGenerator,
-                            this.refreshTokenHashService,
-                            this.clock
-                    );
-                    this.sessionRepository.create(session);
-                } else {
-                    final Session session = optional.get();
-                    session.rotateRefreshToken(
-                            refreshToken,
-                            this.refreshTokenHashService,
-                            this.clock
-                    );
-                    this.sessionRepository.update(session);
-                }
+            final PlainRefreshToken refreshToken = refreshTokenGenerator.generate();
+            final Optional<Session> optional = this.sessionRepository.findByAccountIdAndDeviceId(
+                    account.getId(),
+                    command.deviceId()
+            );
 
-                final String accessToken = AccessTokenBuilder
-                        .forAccess(account.getId())
-                        .role(account.getRole())
-                        .mfaEnabled(account.requiresMfa())
-                        .sign(tokenSigner, clock);
-
-                yield LoginResponse.success(
-                        accessToken,
-                        new String(refreshToken.value()),
-                        account.getId()
+            if (optional.isEmpty() || !optional.get().isActive(clock)) {
+                final Session session = Session.create(
+                        account,
+                        command.deviceId(),
+                        refreshToken,
+                        this.identityGenerator,
+                        this.refreshTokenHashService,
+                        this.clock
                 );
+                this.sessionRepository.create(session);
+            } else {
+                final Session session = optional.get();
+                session.rotateRefreshToken(
+                        refreshToken,
+                        this.refreshTokenHashService,
+                        this.clock
+                );
+                this.sessionRepository.update(session);
             }
-            case AuthenticationResult.PasswordChangeRequired p -> {
-                if (requiresMfa(account.getId(), Instant.now(this.clock))) {
-                    final String token = AccessTokenBuilder
-                            .forMfa(account.getId())
-                            .sign(tokenSigner, clock);
-                    yield LoginResponse.mfaRequired(token, account.getId());
-                }
 
-                final String token = AccessTokenBuilder
-                        .forPasswordReset(account.getId())
-                        .sign(tokenSigner, clock);
-                yield LoginResponse.passwordChangeRequired(token, account.getId());
+            final String accessToken = AccessTokenBuilder
+                    .forAccess(account.getId())
+                    .role(account.getRole())
+                    .mfaEnabled(account.requiresMfa())
+                    .sign(tokenSigner, clock);
+
+            return LoginResponse.success(
+                    accessToken,
+                    new String(refreshToken.value()),
+                    account.getId()
+            );
+        }
+
+        if (result instanceof AuthenticationResult.PasswordChangeRequired) {
+            if (requiresMfa(account.getId(), Instant.now(this.clock))) {
+                final String token = transitionTokenService.issue(
+                        account.getId(),
+                        command.deviceId(),
+                        TokenPurpose.MFA_CHALLENGE
+                );
+                return LoginResponse.mfaRequired(token, account.getId());
             }
-            case AuthenticationResult.Locked l -> throw new AccountLockedException(l.until());
-            case AuthenticationResult.Deleted d -> throw new InvalidCredentialsException();
-            case AuthenticationResult.InvalidCredentials i -> throw new InvalidCredentialsException();
-            default -> throw new IllegalStateException("Unexpected value: " + result);
-        };
+
+            final String token = transitionTokenService.issue(
+                    account.getId(),
+                    command.deviceId(),
+                    TokenPurpose.PASSWORD_RESET
+            );
+            return LoginResponse.passwordChangeRequired(token, account.getId());
+        }
+
+        if (result instanceof AuthenticationResult.Locked) {
+            throw new AccountLockedException(((AuthenticationResult.Locked) result).until());
+        }
+
+        if (result instanceof AuthenticationResult.Deleted || result instanceof AuthenticationResult.InvalidCredentials) {
+            throw new InvalidCredentialsException();
+        }
+
+        throw new IllegalStateException("Unexpected value: " + result);
     }
 
     private boolean requiresMfa(final AccountId accountId, final Instant now) {

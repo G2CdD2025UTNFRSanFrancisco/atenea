@@ -11,13 +11,17 @@ import ar.edu.utn.sanfrancisco.atenea.application.account.command.dto.SetRoleCom
 import ar.edu.utn.sanfrancisco.atenea.application.account.query.GetAccountDetailsUseCase;
 import ar.edu.utn.sanfrancisco.atenea.application.account.query.GetAllAccountDetailsUseCase;
 import ar.edu.utn.sanfrancisco.atenea.domain.account.AccountId;
+import ar.edu.utn.sanfrancisco.atenea.domain.session.DeviceId;
 import ar.edu.utn.sanfrancisco.atenea.domain.session.exceptions.InvalidPasswordResetTokenException;
 import ar.edu.utn.sanfrancisco.atenea.domain.shared.PagedResult;
 import ar.edu.utn.sanfrancisco.atenea.domain.shared.PaginationQuery;
 import ar.edu.utn.sanfrancisco.atenea.infrastructure.account.rest.dto.*;
 import ar.edu.utn.sanfrancisco.atenea.infrastructure.security.account.PasswordResetTokenDecoder;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationToken;
 import org.springframework.web.bind.annotation.*;
@@ -25,11 +29,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/v1/accounts")
 public class AccountController {
 
-    private static final String BEARER_PREFIX = "Bearer ";
+    private static final String PASSWORD_RESET_TOKEN_COOKIE = "password_reset_token";
 
     private final GetAccountDetailsUseCase getAccountDetailsUseCase;
     private final GetAllAccountDetailsUseCase getAllAccountDetailsUseCase;
@@ -107,15 +112,23 @@ public class AccountController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @PreAuthorize("permitAll()")
     public void changePassword(
-            @RequestHeader("X-Password-Token") final String authorizationHeader,
-            @Valid @RequestBody final ChangePasswordRequest request
+            @RequestHeader("X-Device-Id") final String deviceId,
+            @CookieValue(value = PASSWORD_RESET_TOKEN_COOKIE, required = false) final String passwordResetToken,
+            @Valid @RequestBody final ChangePasswordRequest request,
+            final HttpServletResponse response
     ) {
-        final AccountId accountId = passwordResetTokenDecoder.accountIdFrom(extractTransitionToken(authorizationHeader));
+        final String transitionToken = requireTransitionToken(passwordResetToken);
         final char[] newPassword = request.newPassword().toCharArray();
         try {
+            final AccountId accountId = passwordResetTokenDecoder.accountIdFrom(
+                    transitionToken,
+                    new DeviceId(deviceId)
+            );
             changePasswordUseCase.execute(new ChangePasswordCommand(accountId, newPassword));
+            passwordResetTokenDecoder.consume(transitionToken, new DeviceId(deviceId));
         } finally {
             Arrays.fill(newPassword, '\0');
+            clearPasswordResetCookie(response);
         }
     }
 
@@ -148,16 +161,24 @@ public class AccountController {
         return new AccountId(Long.parseLong(principal.getToken().getSubject()));
     }
 
-    private String extractTransitionToken(final String authorizationHeader) {
-        if (authorizationHeader == null || !authorizationHeader.startsWith(BEARER_PREFIX)) {
+    private String requireTransitionToken(final String transitionToken) {
+        if (transitionToken == null || transitionToken.isBlank()) {
+            log.info("Transition token: `{}`", transitionToken);
             throw new InvalidPasswordResetTokenException();
         }
 
-        final String token = authorizationHeader.substring(BEARER_PREFIX.length()).trim();
-        if (token.isBlank()) {
-            throw new InvalidPasswordResetTokenException();
-        }
-        return token;
+        return transitionToken;
+    }
+
+    private void clearPasswordResetCookie(final HttpServletResponse response) {
+        final ResponseCookie cookie = ResponseCookie.from(PASSWORD_RESET_TOKEN_COOKIE, "")
+                .httpOnly(true)
+                .secure(true)
+                .path("/api/v1/accounts/password")
+                .sameSite("Strict")
+                .maxAge(0)
+                .build();
+        response.addHeader("Set-Cookie", cookie.toString());
     }
 }
 

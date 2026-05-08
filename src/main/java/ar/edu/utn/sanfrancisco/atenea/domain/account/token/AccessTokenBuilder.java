@@ -12,13 +12,6 @@ public abstract class AccessTokenBuilder {
         return new DefaultAccessTokenBuilder(accountId);
     }
 
-    public static MfaChallengeAccessTokenBuilder forMfa(final AccountId accountId) {
-        return new MfaChallengeAccessTokenBuilder(accountId);
-    }
-
-    public static PasswordResetAccessTokenBuilder forPasswordReset(final AccountId accountId) {
-        return new PasswordResetAccessTokenBuilder(accountId);
-    }
 
     protected AccessTokenBuilder(final AccountId accountId) {
         this.accountId = accountId;
