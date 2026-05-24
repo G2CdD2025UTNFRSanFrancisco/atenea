@@ -183,19 +183,39 @@ public class SessionController {
             final LoginResponse loginResponse,
             final HttpServletResponse response
     ) {
-        clearTransitionCookies(response);
+        switch (loginResponse.status()) {
+            case SUCCESS -> {
+                clearTransitionCookies(response);
 
-        if (loginResponse.status() == LoginResponse.Status.SUCCESS && loginResponse.refreshToken() != null) {
-            attachRefreshCookie(response, loginResponse.refreshToken());
-        } else if (loginResponse.status() == LoginResponse.Status.MFA_REQUIRED && loginResponse.accessToken() != null) {
-            attachMfaChallengeCookie(response, loginResponse.accessToken());
-        } else if (loginResponse.status() == LoginResponse.Status.PASSWORD_CHANGE_REQUIRED && loginResponse.accessToken() != null) {
-            attachPasswordResetCookie(response, loginResponse.accessToken());
+                if (loginResponse.refreshToken() != null) {
+                    attachRefreshCookie(response, loginResponse.refreshToken());
+                }
+            }
+
+            case MFA_REQUIRED -> {
+                clearRefreshCookie(response);
+                clearPasswordResetCookie(response);
+
+                if (loginResponse.accessToken() != null) {
+                    attachMfaChallengeCookie(response, loginResponse.accessToken());
+                }
+            }
+
+            case PASSWORD_CHANGE_REQUIRED -> {
+                clearRefreshCookie(response);
+                clearMfaChallengeCookie(response);
+
+                if (loginResponse.accessToken() != null) {
+                    attachPasswordResetCookie(response, loginResponse.accessToken());
+                }
+            }
         }
 
         return new SessionAccessResponse(
                 SessionAccessResponse.Status.valueOf(loginResponse.status().name()),
-                loginResponse.status() == LoginResponse.Status.SUCCESS ? loginResponse.accessToken() : null,
+                loginResponse.status() == LoginResponse.Status.SUCCESS
+                        ? loginResponse.accessToken()
+                        : null,
                 loginResponse.accountId().value()
         );
     }
